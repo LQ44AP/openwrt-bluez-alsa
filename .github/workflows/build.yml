@@ -77,9 +77,8 @@ jobs:
       - name: Build Package
         run: |
           cd sdk
-          # 告诉 OpenWrt 也要安装 glib2 的宿主机编译版本
           ./scripts/feeds install glib2
-          
+          echo "CONFIG_PACKAGE_bluez-alsa=m" >> .config
           echo "CONFIG_PACKAGE_alsa-lib=y" >> .config
           echo "CONFIG_PACKAGE_bluez-daemon=y" >> .config
           echo "CONFIG_PACKAGE_sbc=y" >> .config
@@ -95,13 +94,25 @@ jobs:
       - name: Collect IPK
         run: |
           mkdir -p output
-          # 只搜寻我们自己编出来的 bluez-alsa ipk
-          find sdk/bin/packages/ -name "bluez-alsa*.ipk" -exec cp {} output/ \;
-          # 重命名，增加架构后缀以便识别
+          echo "开始全局搜索 .ipk 文件..."
+          # 递归搜索所有生成的 ipk，排除掉不需要的内核包和基础包
+          find sdk/bin/ -name "bluez-alsa*.ipk" -exec cp {} output/ \;
+          
+          # 检查是否真的抓到了文件
+          if [ -z "$(ls -A output)" ]; then
+            echo "错误：未找到 bluez-alsa IPK 文件！"
+            echo "当前的 bin 目录结构如下："
+            ls -R sdk/bin/
+            exit 1
+          fi
+          
+          # 重命名并增加架构标记
           cd output
           for f in *.ipk; do
+            echo "正在处理文件: $f"
             mv "$f" "${f%.ipk}_${{ matrix.arch }}.ipk"
           done
+          ls -lh .
 
       - name: Create Release and Upload
         uses: softprops/action-gh-release@v2  # 推荐使用 v2
