@@ -6,13 +6,20 @@ opkg update && opkg install /root/bluez-alsa_4.3.1-1_mipsel_24kc.ipk
 
 使用 bluetoothctl 配对：
 bluetoothctl
+
 power on
+
 agent on
+
 default-agent
+
 scan on
 # 找到音箱 MAC 地址后 (例如 41:42:5E:33:5C:32)
+
 pair 41:42:5E:33:5C:32
+
 trust 41:42:5E:33:5C:32
+
 connect 41:42:5E:33:5C:32
 
 #确认音箱连接成功后
