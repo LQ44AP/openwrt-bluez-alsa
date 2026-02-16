@@ -5,14 +5,14 @@ opkg update && opkg install /root/bluez-alsa_4.3.1-1_mipsel_24kc.ipk
 
 
 
-3. 停止自动连接脚本
+2. 停止自动连接脚本
 
 
 /etc/init.d/bt_monitor stop
 
 
 
-5. 使用 bluetoothctl 配对：
+3. 使用 bluetoothctl 配对：
 
 bluetoothctl
 
@@ -35,5 +35,6 @@ connect 41:42:5E:33:5C:32
 
 
 4.确认音箱连接成功后，修改绑定的音箱mac并重启自动连接脚本
+
 
 uci set bluealsa.settings.mac='新的MAC' && uci commit bluealsa && /etc/init.d/bt_monitor restart
