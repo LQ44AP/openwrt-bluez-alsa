@@ -59,9 +59,11 @@ jobs:
       - name: Build Package
         run: |
           cd sdk
-          # 关键步骤：先生成默认配置，再选择性编译
+          # 强制开启必要的依赖库，防止因 SDK 默认配置缺失导致的报错
+          echo "CONFIG_PACKAGE_alsa-lib=y" >> .config
+          echo "CONFIG_PACKAGE_bluez-libs=y" >> .config
+          echo "CONFIG_PACKAGE_sbc=y" >> .config
           make defconfig
-          # 使用 -j$(nproc) 加速编译，并强制预编译所有依赖包
           make package/bluez-alsa/compile V=s -j$(nproc)
 
       - name: Collect IPK
