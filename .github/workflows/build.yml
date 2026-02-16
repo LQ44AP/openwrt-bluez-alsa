@@ -94,20 +94,29 @@ jobs:
       - name: Collect IPK
         run: |
           mkdir -p output
-          echo "开始全局搜索 .ipk 文件..."
-          # 递归搜索所有生成的 ipk，排除掉不需要的内核包和基础包
-          find sdk/bin/ -name "bluez-alsa*.ipk" -exec cp {} output/ \;
+          echo "正在精准搜寻编译产物..."
           
-          # 检查是否真的抓到了文件
-          if [ -z "$(ls -A output)" ]; then
-            echo "错误：未找到 bluez-alsa IPK 文件！"
-            echo "当前的 bin 目录结构如下："
-            ls -R sdk/bin/
-            exit 1
-          fi
-          
+          # 1. 仅从最终产物目录搜索，避免抓取到 build_dir 里的中间件
+          # 使用 -type f 确保只找文件，并限制深度
+          find sdk/bin/packages/ -name "bluez-alsa*.ipk" -type f -exec cp -t output/ {} +
+
+          # 2. 进入目录进行清理和重命名
           cd output
-          for f in *.ipk
+          
+          # 移除由于 find 策略可能导致的重复文件（基于文件名去重）
+          # 同时防止对已经包含架构标记的文件重复加后缀
+          for f in *.ipk; do
+            # 检查文件名是否已经包含该架构字符串，防止重复重命名
+            if [[ "$f" != *"${{ matrix.arch }}"* ]]; then
+              new_name="${f%.ipk}_${{ matrix.arch }}.ipk"
+              echo "重命名: $f -> $new_name"
+              mv "$f" "$new_name"
+            else
+              echo "跳过已处理文件: $f"
+            fi
+          done
+          
+          echo "最终待发布列表："
           ls -lh .
 
       - name: Create Release and Upload
