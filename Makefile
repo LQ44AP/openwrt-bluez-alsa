@@ -32,11 +32,11 @@ define Package/bluez-alsa/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_DIR) $(1)/etc/dbus-1/system.d
 
-	# 2. 安装主程序 (参考你成功的路径)
+	# 2. 安装主程序
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/bluealsa $(1)/usr/bin/
-	$(INSTALL_BIN) $(PKG_INSTALL_DIR)$(STAGING_DIR)/usr/bin/bluealsa-aplay $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/bluealsa-aplay $(1)/usr/bin/
 
-	# 3. 安装 ALSA 插件 (参考你成功的路径，注意路径衔接)
+	# 3. 安装 ALSA 插件
 	# 如果 $(STAGING_DIR) 是绝对路径，有的环境需要去掉开头的斜杠
 	$(CP) $(PKG_INSTALL_DIR)$(STAGING_DIR)/usr/lib/alsa-lib/libasound_module_*.so $(1)/usr/lib/alsa-lib/
 
