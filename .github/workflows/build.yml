@@ -1,0 +1,76 @@
+name: Build Multi-Arch Bluez-Alsa on Tag
+
+on:
+  push:
+    tags:
+      - 'v*'  
+  workflow_dispatch: 
+
+jobs:
+  build:
+    name: Build for ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # mipsel 架构 
+          - arch: mipsel_24kc
+            sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/ramips/mt7621/openwrt-sdk-23.05.6-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+          
+          # mips 架构 
+          - arch: mips_24kc
+            sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/ath79/generic/openwrt-sdk-23.05.6-ath79-generic_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+            
+          # x86_64 架构 
+          - arch: x86_64
+            sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/x86/64/openwrt-sdk-23.05.6-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+
+          # ARM64 架构 
+          - arch: aarch64_generic
+            sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/rockchip/armv8/openwrt-sdk-23.05.6-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libncurses5-dev gawk git gettext libssl-dev xsltproc wget zip unzip rsync
+
+      - name: Setup SDK
+        run: |
+          wget -qO sdk.tar.xz "${{ matrix.sdk_url }}"
+          mkdir sdk && tar -xJf sdk.tar.xz -C sdk --strip-components=1
+          cd sdk
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Add Package to SDK
+        run: |
+          mkdir -p sdk/package/bluez-alsa
+          cp Makefile sdk/package/bluez-alsa/
+          cp -r files sdk/package/bluez-alsa/
+          # 强制修复 Windows 换行符
+          find sdk/package/bluez-alsa/files/ -type f -exec sed -i 's/\r$//' {} +
+
+      - name: Build Package
+        run: |
+          cd sdk
+          make defconfig
+          make package/bluez-alsa/compile V=s
+
+      - name: Collect IPK
+        run: |
+          mkdir -p output
+          find sdk/bin/packages/ -name "bluez-alsa*.ipk" -exec cp {} output/ \;
+          # 重命名以便在 Release 页面区分
+          for f in output/*.ipk; do mv "$f" "${f%.ipk}_${{ matrix.arch }}.ipk"; done
+
+      - name: Create Release and Upload
+        uses: softprops/action-gh-release@v1
+        with:
+          files: output/*.ipk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
