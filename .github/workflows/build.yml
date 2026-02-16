@@ -45,13 +45,20 @@ jobs:
           mkdir sdk && tar -xJf sdk.tar.xz -C sdk --strip-components=1
           cd sdk
           
-          # 1. 屏蔽掉不稳定的 feeds（特别是 telephony 和 routing，它们经常导致合并错误）
-          sed -i '/telephony/d' feeds.conf.default
-          sed -i '/routing/d' feeds.conf.default
-          sed -i '/luci/d' feeds.conf.default
-          
-          # 2. 更新并只安装核心依赖，避免 install -a 扫描到坏包
+          # 1. 替换默认源为 GitHub 镜像 (提高拉取成功率)
+          # 我们保留 base, packages, net, utils 这四个核心源
+          cat > feeds.conf.default <<EOF
+          src-git base https://github.com/openwrt/openwrt.git;v23.05.6
+          src-git packages https://github.com/openwrt/packages.git;openwrt-23.05
+          src-git routing https://github.com/openwrt/routing.git;openwrt-23.05
+          src-git telephony https://github.com/openwrt/telephony.git;openwrt-23.05
+          EOF
+
+          # 2. 更新源
           ./scripts/feeds update -a
+          
+          # 3. 安装依赖包
+          # 先精准安装核心依赖，再执行 install -a 补充索引
           ./scripts/feeds install alsa-lib bluez-daemon glib2 sbc fdk-aac dbus
           ./scripts/feeds install -a || echo "Ignore core merging warnings"
 
