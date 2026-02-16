@@ -67,8 +67,11 @@ jobs:
           cd sdk
           # 强制开启必要的依赖库，防止因 SDK 默认配置缺失导致的报错
           echo "CONFIG_PACKAGE_alsa-lib=y" >> .config
-          echo "CONFIG_PACKAGE_bluez-libs=y" >> .config
+          echo "CONFIG_PACKAGE_bluez-daemon=y" >> .config
           echo "CONFIG_PACKAGE_sbc=y" >> .config
+          echo "CONFIG_PACKAGE_glib2=y" >> .config
+          echo "CONFIG_PACKAGE_fdk-aac=y" >> .config
+          echo "CONFIG_PACKAGE_dbus=y" >> .config
           make defconfig
           make package/bluez-alsa/compile V=s -j$(nproc)
 
