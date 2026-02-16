@@ -48,6 +48,7 @@ jobs:
           # 1. 屏蔽掉不稳定的 feeds（特别是 telephony 和 routing，它们经常导致合并错误）
           sed -i '/telephony/d' feeds.conf.default
           sed -i '/routing/d' feeds.conf.default
+          sed -i '/luci/d' feeds.conf.default
           
           # 2. 更新并只安装核心依赖，避免 install -a 扫描到坏包
           ./scripts/feeds update -a
