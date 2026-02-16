@@ -44,9 +44,9 @@ jobs:
           wget -qO sdk.tar.xz "${{ matrix.sdk_url }}"
           mkdir sdk && tar -xJf sdk.tar.xz -C sdk --strip-components=1
           cd sdk
-          # 更新并安装所有 feeds 依赖，这是编译插件的前提
           ./scripts/feeds update -a
-          ./scripts/feeds install -a
+          ./scripts/feeds install alsa-lib bluez-daemon glib2 sbc fdk-aac dbus
+          ./scripts/feeds install -a || true
 
       - name: Add Package to SDK
         run: |
