@@ -19,6 +19,7 @@ define Package/bluez-alsa
   CATEGORY:=Sound
   DEPENDS:=+alsa-lib +bluez-daemon +glib2 +sbc +fdk-aac +dbus
   TITLE:=Optimized Bluetooth Audio for OpenWrt
+  URL:=https://github.com/Arkq/bluez-alsa.git
 endef
 
 CONFIGURE_ARGS += --enable-aac --with-alsalibdir=/usr/lib/alsa-lib
