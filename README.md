@@ -1,8 +1,12 @@
 1. 安装（假定ipk在root目录）
 opkg update && opkg install /root/bluez-alsa_4.3.1-1_mipsel_24kc.ipk
 
+
+
 2. 停止自动连接脚本
 /etc/init.d/bt_monitor stop
+
+
 
 3. 使用 bluetoothctl 配对：
 
