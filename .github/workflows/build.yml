@@ -106,12 +106,8 @@ jobs:
             exit 1
           fi
           
-          # 重命名并增加架构标记
           cd output
-          for f in *.ipk; do
-            echo "正在处理文件: $f"
-            mv "$f" "${f%.ipk}_${{ matrix.arch }}.ipk"
-          done
+          for f in *.ipk
           ls -lh .
 
       - name: Create Release and Upload
