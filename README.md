@@ -38,3 +38,8 @@ connect 41:42:5E:33:5C:32
 
 
 uci set bluealsa.settings.mac='新的MAC' && uci commit bluealsa && /etc/init.d/bt_monitor restart
+
+
+
+
+关于编译（需要这个组件）：sudo apt install libglib2.0-dev-bin
