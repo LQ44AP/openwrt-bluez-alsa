@@ -22,7 +22,13 @@ define Package/bluez-alsa
   URL:=https://github.com/Arkq/bluez-alsa.git
 endef
 
-CONFIGURE_ARGS += --enable-aac --with-alsalibdir=/usr/lib/alsa-lib
+CONFIGURE_ARGS += --enable-aac \
+	--with-alsalibdir=/usr/lib/alsa-lib \
+	--enable-a2dp-sink \
+	--enable-a2dp-source \
+	--enable-alsa-plugins \
+	--disable-payload-check \
+	--disable-manpages	
 
 define Package/bluez-alsa/install
 	# 1. 创建所有目标目录
