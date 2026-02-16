@@ -10,23 +10,23 @@ jobs:
   build:
     name: Build for ${{ matrix.arch }}
     runs-on: ubuntu-latest
+    # 授予写入 Release 的权限
+    permissions:
+      contents: write
+    
     strategy:
       fail-fast: false
       matrix:
         include:
-          # mipsel 架构 
           - arch: mipsel_24kc
             sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/ramips/mt7621/openwrt-sdk-23.05.6-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz
           
-          # mips 架构 
           - arch: mips_24kc
             sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/ath79/generic/openwrt-sdk-23.05.6-ath79-generic_gcc-12.3.0_musl.Linux-x86_64.tar.xz
             
-          # x86_64 架构 
           - arch: x86_64
             sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/x86/64/openwrt-sdk-23.05.6-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
 
-          # ARM64 架构 
           - arch: aarch64_generic
             sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/rockchip/armv8/openwrt-sdk-23.05.6-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
 
@@ -37,13 +37,14 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libncurses5-dev gawk git gettext libssl-dev xsltproc wget zip unzip rsync
+          sudo apt-get install -y build-essential libncurses5-dev gawk git gettext libssl-dev xsltproc wget zip unzip rsync python3
 
       - name: Setup SDK
         run: |
           wget -qO sdk.tar.xz "${{ matrix.sdk_url }}"
           mkdir sdk && tar -xJf sdk.tar.xz -C sdk --strip-components=1
           cd sdk
+          # 更新并安装所有 feeds 依赖，这是编译插件的前提
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
@@ -51,26 +52,36 @@ jobs:
         run: |
           mkdir -p sdk/package/bluez-alsa
           cp Makefile sdk/package/bluez-alsa/
-          cp -r files sdk/package/bluez-alsa/
-          # 强制修复 Windows 换行符
-          find sdk/package/bluez-alsa/files/ -type f -exec sed -i 's/\r$//' {} +
+          [ -d files ] && cp -r files sdk/package/bluez-alsa/
+          # 强制修复换行符，防止安装后 init 脚本报错
+          find sdk/package/bluez-alsa/ -type f -exec sed -i 's/\r$//' {} +
 
       - name: Build Package
         run: |
           cd sdk
+          # 关键步骤：先生成默认配置，再选择性编译
           make defconfig
-          make package/bluez-alsa/compile V=s
+          # 使用 -j$(nproc) 加速编译，并强制预编译所有依赖包
+          make package/bluez-alsa/compile V=s -j$(nproc)
 
       - name: Collect IPK
         run: |
           mkdir -p output
+          # 只搜寻我们自己编出来的 bluez-alsa ipk
           find sdk/bin/packages/ -name "bluez-alsa*.ipk" -exec cp {} output/ \;
-          # 重命名以便在 Release 页面区分
-          for f in output/*.ipk; do mv "$f" "${f%.ipk}_${{ matrix.arch }}.ipk"; done
+          # 重命名，增加架构后缀以便识别
+          cd output
+          for f in *.ipk; do
+            mv "$f" "${f%.ipk}_${{ matrix.arch }}.ipk"
+          done
 
       - name: Create Release and Upload
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2  # 推荐使用 v2
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: output/*.ipk
+          # 如果 tag 是测试版（如 v1.0-beta），自动标记为预发布
+          prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
+          generate_release_notes: true # 自动根据 commit 生成更新日志
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
