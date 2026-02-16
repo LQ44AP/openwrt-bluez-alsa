@@ -1,4 +1,4 @@
-name: Build Multi-Arch Bluez-Alsa on Tag
+name: Build Bluez-Alsa
 
 on:
   push:
