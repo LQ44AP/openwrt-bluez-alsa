@@ -53,6 +53,7 @@ jobs:
           # 2. 更新并只安装核心依赖，避免 install -a 扫描到坏包
           ./scripts/feeds update -a
           ./scripts/feeds install alsa-lib bluez-daemon glib2 sbc fdk-aac dbus
+          ./scripts/feeds install -a || echo "Ignore core merging warnings"
 
       - name: Add Package to SDK
         run: |
