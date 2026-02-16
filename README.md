@@ -24,7 +24,7 @@ default-agent
 
 scan on
 
-#找到音箱 MAC 地址后 (例如 41:42:5E:33:5C:32)
+#找到蓝牙音箱 MAC 地址后 (例如 41:42:5E:33:5C:32)
 
 pair 41:42:5E:33:5C:32
 
@@ -34,7 +34,7 @@ connect 41:42:5E:33:5C:32
 
 
 
-4.确认音箱连接成功后，修改绑定的音箱mac并重启自动连接脚本
+4.确认蓝牙音箱连接成功后，修改绑定的蓝牙音箱mac并重启自动连接脚本
 
 
 uci set bluealsa.settings.mac='新的MAC' && uci commit bluealsa && /etc/init.d/bt_monitor restart
