@@ -37,7 +37,11 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libncurses5-dev gawk git gettext libssl-dev xsltproc wget zip unzip rsync python3
+          # 关键点：增加了 libglib2.0-dev-bin (提供 gdbus-codegen)
+          # 以及 libtool, pkg-config, gettext
+          sudo apt-get install -y build-essential libncurses5-dev gawk git gettext \
+            libssl-dev xsltproc wget zip unzip rsync python3 \
+            libglib2.0-dev-bin libtool pkg-config
 
       - name: Setup SDK
         run: |
@@ -73,14 +77,19 @@ jobs:
       - name: Build Package
         run: |
           cd sdk
-          # 强制开启必要的依赖库，防止因 SDK 默认配置缺失导致的报错
+          # 告诉 OpenWrt 也要安装 glib2 的宿主机编译版本
+          ./scripts/feeds install glib2
+          
           echo "CONFIG_PACKAGE_alsa-lib=y" >> .config
           echo "CONFIG_PACKAGE_bluez-daemon=y" >> .config
           echo "CONFIG_PACKAGE_sbc=y" >> .config
           echo "CONFIG_PACKAGE_glib2=y" >> .config
           echo "CONFIG_PACKAGE_fdk-aac=y" >> .config
           echo "CONFIG_PACKAGE_dbus=y" >> .config
+          
           make defconfig
+          # 先单独编译 glib2 确保环境完整，再编 bluez-alsa
+          make package/glib2/host/compile V=s -j$(nproc)
           make package/bluez-alsa/compile V=s -j$(nproc)
 
       - name: Collect IPK
