@@ -1,15 +1,38 @@
 #!/bin/sh /etc/rc.common
 
-START=70
+START=94
 USE_PROCD=1
-PROG=/usr/bin/bluealsa
 
 start_service() {
-	procd_open_instance
-	# -p a2dp-source ȷ����Ϊ���������
-	procd_set_param command "$PROG" -i hci0 -p a2dp-source
-	procd_set_param respawn
-	procd_set_param stdout 0
-	procd_set_param stderr 0
-	procd_close_instance
+    config_load bluealsa
+    local enabled sink source name
+    config_get_bool enabled main enabled 1
+    config_get_bool sink main sink_enabled 1
+    config_get_bool source main source_enabled 1
+    config_get name main device_name 'OpenWrt-BT'
+
+    [ "$enabled" -eq 0 ] && return
+
+    # 1. 启动主服务：动态拼接 -p 参数
+    local args="-i hci0"
+    [ "$sink" -eq 1 ] && args="$args -p a2dp-sink"
+    [ "$source" -eq 1 ] && args="$args -p a2dp-source"
+
+    procd_open_instance
+    procd_set_param command /usr/bin/bluealsa $args
+    procd_set_param respawn
+    procd_close_instance
+
+    # 2. 接收模式专用：启动音频自动转发
+    if [ "$sink" -eq 1 ]; then
+        procd_open_instance
+        procd_set_param command /usr/bin/bluealsa-aplay -a --profile-a2dp
+        procd_set_param respawn
+        procd_close_instance
+    fi
+
+    # 3. 设置可见性与名称 (针对接收模式)
+    hciconfig hci0 up
+    hciconfig hci0 name "$name"
+    hciconfig hci0 piscan
 }
