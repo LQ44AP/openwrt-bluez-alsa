@@ -33,7 +33,6 @@ CONFIGURE_ARGS += \
     --disable-payloadcheck \
     --with-libav-no \
     --with-alsalibdir=/usr/lib/alsa-lib \
-    --enable-fast-install \
     --disable-static \
     --enable-shared \
 	--enable-ofono
