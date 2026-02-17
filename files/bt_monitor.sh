@@ -9,7 +9,7 @@ DEVICE_MAC=$(uci -q get bluealsa.settings.mac)
 
 # 2. 如果没有配置 MAC，直接记录日志并退出
 if [ -z "$DEVICE_MAC" ]; then
-    logger -t $LOG_TAG "错误: 未在 配置目标 MAC 地址。脚本自动退出。"
+    logger -t $LOG_TAG "错误: 未配置目标 MAC 地址。脚本自动退出。"
     exit 0  # 正常退出，避免 procd 认为崩溃而频繁重启
 fi
 
