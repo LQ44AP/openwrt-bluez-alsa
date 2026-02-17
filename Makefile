@@ -28,7 +28,11 @@ CONFIGURE_ARGS += --enable-aac \
 	--enable-a2dp-source \
 	--enable-alsa-plugins \
 	--disable-payload-check \
-	--disable-manpages	
+	--disable-manpages \
+	--enable-aplay \
+	--with-libav-no \
+	--enable-mpg123 \
+	--disable-ofono \
 
 define Package/bluez-alsa/install
 	# 1. 创建所有目标目录
