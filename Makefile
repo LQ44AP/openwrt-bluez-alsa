@@ -29,7 +29,7 @@ CONFIGURE_ARGS += \
 	--disable-payloadcheck \
 	--disable-manpages \
 	--enable-aplay \
-	--enable-cli \
+	--disable-cli \
 	--with-libav-no \
 	--enable-mpg123 \
 	--disable-ofono
