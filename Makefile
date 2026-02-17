@@ -23,15 +23,16 @@ define Package/bluez-alsa
 endef
 
 CONFIGURE_ARGS += \
-	--enable-aac \
-	--with-alsalibdir=/usr/lib/alsa-lib \
-	--enable-alsa-plugins \
-	--disable-payloadcheck \
-	--disable-manpages \
-	--enable-aplay \
-	--disable-cli \
-	--with-libav-no \
-	--enable-mpg123 \
+    --enable-aplay \
+    --enable-aac \
+    --enable-mpg123 \
+    --enable-msbc \
+    --disable-payloadcheck \
+    --with-libav-no \
+    --with-alsalibdir=/usr/lib/alsa-lib \
+    --enable-fast-install \
+    --disable-static \
+    --enable-shared \
 	--enable-ofono
 
 define Package/bluez-alsa/install
@@ -72,9 +73,9 @@ define Package/bluez-alsa/install
 	$(INSTALL_DATA) ./files/bluealsa.config $(1)/etc/config/bluealsa
 
 	# 9. 写入动态 asound.conf (自动寻找模式)
-	$(INSTALL_DIR) $(1)/etc
-	@echo 'pcm.bluealsa { type bluealsa device "00:00:00:00:00:00" profile "a2dp" }' > $(1)/etc/asound.conf
-	@echo 'ctl.bluealsa { type bluealsa }' >> $(1)/etc/asound.conf
+	$(INSTALL_DIR) $(1)/etc/alsa/conf.d
+	@echo 'pcm.bluealsa { type bluealsa device "00:00:00:00:00:00" profile "a2dp" }' > $(1)/etc/alsa/conf.d/20-bluealsa.conf
+	@echo 'ctl.bluealsa { type bluealsa }' >> $(1)/etc/alsa/conf.d/20-bluealsa.conf
 endef
 
 $(eval $(call BuildPackage,bluez-alsa))
