@@ -45,5 +45,5 @@ while true; do
 		sleep 5 # 连接动作后的冷却时间
 	fi
 
-	sleep 3 # 轮询间隔
+	sleep 10 # 轮询间隔
 done
