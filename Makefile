@@ -50,7 +50,7 @@ define Package/bluez-alsa/install
 
 	# 3. 安装 ALSA 插件
 	# 如果 $(STAGING_DIR) 是绝对路径，有的环境需要去掉开头的斜杠
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/alsa-lib/libasound_module_*.so $(1)/usr/lib/alsa-lib/
+	$(CP) $(PKG_INSTALL_DIR)$(STAGING_DIR)/usr/lib/alsa-lib/libasound_module_*.so $(1)/usr/lib/alsa-lib/
 
 	# 4. 路径修复补丁：建立软链接，让 aplay 不再报错
 	ln -sf alsa-lib/libasound_module_pcm_bluealsa.so $(1)/usr/lib/libasound_module_pcm_bluealsa.so
