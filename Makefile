@@ -32,7 +32,7 @@ CONFIGURE_ARGS += \
 	--disable-cli \
 	--with-libav-no \
 	--enable-mpg123 \
-	--disable-ofono
+	--enable-ofono
 
 define Package/bluez-alsa/install
 	# 1. 创建所有目标目录
