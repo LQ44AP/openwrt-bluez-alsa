@@ -62,8 +62,7 @@ define Package/bluez-alsa/install
 	# 6. 安装启动脚本
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/bluealsa.init $(1)/etc/init.d/bluealsa
-	$(INSTALL_BIN) ./files/bt_monitor.init $(1)/etc/init.d/bt_monitor
-
+	
 	# 7. 安装监控脚本
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) ./files/bt_monitor.sh $(1)/usr/bin/bt_monitor.sh
