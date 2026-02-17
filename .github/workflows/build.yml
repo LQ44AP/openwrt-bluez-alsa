@@ -85,6 +85,8 @@ jobs:
           echo "CONFIG_PACKAGE_glib2=y" >> .config
           echo "CONFIG_PACKAGE_fdk-aac=y" >> .config
           echo "CONFIG_PACKAGE_dbus=y" >> .config
+          echo "CONFIG_PACKAGE_mpg123=y" >> .config
+          echo "CONFIG_PACKAGE_libspandsp=y" >> .config
           
           make defconfig
           # 先单独编译 glib2 确保环境完整，再编 bluez-alsa
