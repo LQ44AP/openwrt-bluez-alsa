@@ -4,24 +4,22 @@ export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 LOG_TAG="BT_MONITOR"
 LAST_STATE="unknown"
 
+# 从 UCI 获取一次 MAC 地址即可
+DEVICE_MAC=$(uci -q get bluealsa.settings.mac)
+
+if [ -z "$DEVICE_MAC" ]; then
+    logger -t $LOG_TAG "错误: 未配置目标 MAC 地址，退出。"
+    exit 1
+fi
+
 while true; do
-	# 从 UCI 动态读取配置
-	DEVICE_MAC=$(uci -q get bluealsa.settings.mac)
-	ENABLED=$(uci -q get bluealsa.settings.enabled)
-
-	# 检查开关
-	if [ "$ENABLED" != "1" ] || [ -z "$DEVICE_MAC" ]; then
-		sleep 60
-		continue
-	fi
-
-	# 1. 硬件层守护
+	# 1. 硬件层守护 (确保蓝牙适配器是开启状态)
 	if ! hciconfig hci0 | grep -q "UP RUNNING"; then
 		hciconfig hci0 up
 		sleep 2
 	fi
 
-	# 2. 获取当前状态 (Connected & Resolved)
+	# 2. 获取当前状态
 	INFO=$(bluetoothctl info "$DEVICE_MAC" 2>/dev/null)
 	CONNECTED=$(echo "$INFO" | grep -q "Connected: yes" && echo "on" || echo "off")
 	RESOLVED=$(echo "$INFO" | grep -q "ServicesResolved: yes" && echo "on" || echo "off")
@@ -40,20 +38,12 @@ while true; do
 		LAST_STATE=$CUR_STATE
 	fi
 
-	# 4. 状态机动作
-	case $CUR_STATE in
-		"connected")
-			sleep 30
-			;;
-		"handshaking")
-			# 等待协议栈自行解析服务，不在此处刷 connect 指令
-			sleep 10
-			;;
-		"disconnected")
-			# 尝试静默连接
-			printf "connect $DEVICE_MAC\nquit\n" | bluetoothctl >/dev/null 2>&1
-			sleep 40
-			;;
-	esac
-	sleep 5
+	# 4. 执行自动连接动作 (如果是断开状态)
+	if [ "$CUR_STATE" = "disconnected" ]; then
+		logger -t $LOG_TAG "尝试连接设备: $DEVICE_MAC ..."
+		printf "connect $DEVICE_MAC\nquit\n" | bluetoothctl >/dev/null 2>&1
+		sleep 5 # 连接动作后的冷却时间
+	fi
+
+	sleep 3 # 轮询间隔
 done
