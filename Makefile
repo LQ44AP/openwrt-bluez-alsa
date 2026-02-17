@@ -17,22 +17,22 @@ include $(INCLUDE_DIR)/package.mk
 define Package/bluez-alsa
   SECTION:=sound
   CATEGORY:=Sound
-  DEPENDS:=+alsa-lib +bluez-daemon +glib2 +sbc +fdk-aac +dbus
+  DEPENDS:=+alsa-lib +bluez-daemon +glib2 +sbc +fdk-aac +dbus +mpg123
   TITLE:=Optimized Bluetooth Audio for OpenWrt
   URL:=https://github.com/Arkq/bluez-alsa.git
 endef
 
-CONFIGURE_ARGS += --enable-aac \
+CONFIGURE_ARGS += \
+	--enable-aac \
 	--with-alsalibdir=/usr/lib/alsa-lib \
-	--enable-a2dp-sink \
-	--enable-a2dp-source \
 	--enable-alsa-plugins \
-	--disable-payload-check \
+	--disable-payloadcheck \
 	--disable-manpages \
 	--enable-aplay \
+	--enable-cli \
 	--with-libav-no \
 	--enable-mpg123 \
-	--disable-ofono \
+	--disable-ofono
 
 define Package/bluez-alsa/install
 	# 1. 创建所有目标目录
