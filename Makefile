@@ -33,8 +33,6 @@ CONFIGURE_ARGS += \
     --disable-payloadcheck \
     --with-libav-no \
     --with-alsalibdir=/usr/lib/alsa-lib \
-    --disable-static \
-    --enable-shared \
 	--enable-ofono
 
 define Package/bluez-alsa/install
