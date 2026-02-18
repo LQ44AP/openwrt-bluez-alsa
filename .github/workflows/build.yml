@@ -37,8 +37,6 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt-get update
-          # 关键点：增加了 libglib2.0-dev-bin (提供 gdbus-codegen)
-          # 以及 libtool, pkg-config, gettext
           sudo apt-get install -y build-essential libncurses5-dev gawk git gettext \
             libssl-dev xsltproc wget zip unzip rsync python3 \
             libglib2.0-dev-bin libtool pkg-config
@@ -50,7 +48,6 @@ jobs:
           cd sdk
           
           # 1. 替换默认源为 GitHub 镜像 (提高拉取成功率)
-          # 我们保留 base, packages, net, utils 这四个核心源
           cat > feeds.conf.default <<EOF
           src-git base https://github.com/openwrt/openwrt.git;v23.05.6
           src-git packages https://github.com/openwrt/packages.git;openwrt-23.05
