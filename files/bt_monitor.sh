@@ -10,7 +10,7 @@ while true; do
     [ -z "$DEVICE_MAC" ] && exit 0
 	
 	if [ -z "$DEVICE_MAC" ]; then
-    	logger -t $LOG_TAG "错误：未在 LuCI 中配置有效的 MAC 地址。脚本自动退出。"
+    	logger -t $LOG_TAG "错误：未在 uci 中配置有效的 MAC 地址。脚本自动退出。"
     	exit 0
 	fi
 
