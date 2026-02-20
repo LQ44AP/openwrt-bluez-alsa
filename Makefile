@@ -23,7 +23,7 @@ define Package/bluez-alsa
 endef
 
 # 针对音频编解码进行性能优化
-TARGET_CFLAGS += -Ofast -fno-caller-saves -fomit-frame-pointer
+TARGET_CFLAGS += -O3 -fomit-frame-pointe
 
 CONFIGURE_ARGS += \
     --enable-aplay \
