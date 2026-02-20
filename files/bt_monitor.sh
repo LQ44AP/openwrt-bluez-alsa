@@ -37,9 +37,8 @@ while true; do
             sleep 2
         fi
 
-        # 4. 核心探测：使用 hcitool info
-        # 注意：info 命令在设备不在线时会产生 "I/O error" 的底层日志
-        if hcitool info "$DEVICE_MAC" >/dev/null 2>&1; then
+        # 4. 核心探测
+        if l2ping -c 1 -t 2 "$DEVICE_MAC" >/dev/null 2>&1; then
             logger -t $LOG_TAG "探测到目标在线，发起连接..."
             bluetoothctl connect "$DEVICE_MAC" >/dev/null 2>&1
             sleep 15
