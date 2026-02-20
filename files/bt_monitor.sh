@@ -44,8 +44,6 @@ while true; do
             bluetoothctl connect "$DEVICE_MAC" >/dev/null 2>&1
             sleep 15
         else
-            # 【重要】探测失败（音箱关机）时，必须在此处 sleep
-            # 否则脚本会瞬间回到 while 开头，造成 CPU 占用过高
             sleep 30
         fi
     fi
