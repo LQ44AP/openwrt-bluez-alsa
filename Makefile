@@ -33,7 +33,8 @@ CONFIGURE_ARGS += \
     --disable-payloadcheck \
     --with-libav-no \
     --with-alsalibdir=/usr/lib/alsa-lib \
-	--enable-ofono
+	--enable-ofono \
+	--enable-cli
 
 define Package/bluez-alsa/install
 	# 1. 创建所有目标目录
@@ -47,6 +48,7 @@ define Package/bluez-alsa/install
 	# 2. 安装主程序
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/bluealsa $(1)/usr/bin/
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/bluealsa-aplay $(1)/usr/bin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/bluealsa-cli $(1)/usr/bin/
 
 	# 3. 安装 ALSA 插件
 	# 如果 $(STAGING_DIR) 是绝对路径，有的环境需要去掉开头的斜杠
