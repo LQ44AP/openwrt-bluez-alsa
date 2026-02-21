@@ -22,9 +22,6 @@ define Package/bluez-alsa
   URL:=https://github.com/Arkq/bluez-alsa.git
 endef
 
-# 针对音频编解码进行性能优化
-# TARGET_CFLAGS += -O3 -fomit-frame-pointer
-
 CONFIGURE_ARGS += \
     --enable-aplay \
     --enable-aac \
