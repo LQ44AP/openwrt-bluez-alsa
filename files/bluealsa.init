@@ -21,7 +21,7 @@ start_service() {
     local args="-i hci0"
     [ "$sink" -eq 1 ] && args="$args -p a2dp-sink"
     [ "$source" -eq 1 ] && args="$args -p a2dp-source"
-    [ "$aac" -eq 1 ] && args="$args --codec=AAC --aac-afterburner --aac-vbr"
+    [ "$aac" -eq 1 ] && args="$args --codec=AAC --aac-afterburner"
 
     procd_open_instance "main"
     procd_set_param command /usr/bin/bluealsa $args
