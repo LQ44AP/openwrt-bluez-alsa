@@ -17,7 +17,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/bluez-alsa
   SECTION:=sound
   CATEGORY:=Sound
-  DEPENDS:=+alsa-lib +bluez-daemon +glib2 +sbc +fdk-aac +dbus +mpg123 +libspandsp +kmod-input-uinput
+  DEPENDS:=+alsa-lib +bluez-daemon +glib2 +sbc +fdk-aac +dbus +mpg123 +libspandsp +kmod-input-uinput +coreutils-timeout
   TITLE:=Optimized Bluetooth Audio for OpenWrt
   URL:=https://github.com/Arkq/bluez-alsa.git
 endef
