@@ -38,7 +38,8 @@ while true; do
         fi
 
         # 4. 核心探测
-        if l2ping -c 1 -t 2 "$DEVICE_MAC" >/dev/null 2>&1; then
+        if l2ping -c 1 -t 2 "$DEVICE_MAC" >/dev/null 2>&1 || \
+           (timeout 5 bluetoothctl scan on | grep -iq "$DEVICE_MAC"); then
             logger -t $LOG_TAG "探测到目标在线，发起连接..."
             bluetoothctl connect "$DEVICE_MAC" >/dev/null 2>&1
             sleep 15
