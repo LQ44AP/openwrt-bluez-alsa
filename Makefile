@@ -6,7 +6,7 @@ PKG_RELEASE:=1
 
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/Arkq/bluez-alsa.git
-PKG_SOURCE_VERSION:=v4.3.1
+PKG_SOURCE_VERSION:=v$(PKG_VERSION)
 PKG_MIRROR_HASH:=skip
 
 PKG_FIXUP:=autoreconf
