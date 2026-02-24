@@ -52,8 +52,8 @@ define Package/bluez-alsa/install
 	$(CP) $(PKG_INSTALL_DIR)$(STAGING_DIR)/usr/lib/alsa-lib/libasound_module_*.so $(1)/usr/lib/alsa-lib/
 
 	# 4. 路径修复补丁：建立软链接，让 aplay 不再报错
-	ln -sf alsa-lib/libasound_module_pcm_bluealsa.so $(1)/usr/lib/libasound_module_pcm_bluealsa.so
-	ln -sf alsa-lib/libasound_module_ctl_bluealsa.so $(1)/usr/lib/libasound_module_ctl_bluealsa.so
+	# ln -sf alsa-lib/libasound_module_pcm_bluealsa.so $(1)/usr/lib/libasound_module_pcm_bluealsa.so
+	# ln -sf alsa-lib/libasound_module_ctl_bluealsa.so $(1)/usr/lib/libasound_module_ctl_bluealsa.so
 
 	# 5. 安装 D-Bus 配置文件
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/src/bluealsa-dbus.conf $(1)/etc/dbus-1/system.d/bluealsa.conf 2>/dev/null || \
