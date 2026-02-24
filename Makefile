@@ -34,33 +34,41 @@ CONFIGURE_ARGS += \
 	--enable-cli
 
 define Package/bluez-alsa/install
-	# 1. 安装主程序
+	# 1. 创建所有目标目录
+	$(INSTALL_DIR) $(1)/usr/bin
+	$(INSTALL_DIR) $(1)/usr/lib/alsa-lib
+	$(INSTALL_DIR) $(1)/usr/lib
+	$(INSTALL_DIR) $(1)/etc/config
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_DIR) $(1)/etc/dbus-1/system.d
+
+	# 2. 安装主程序
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/bluealsa $(1)/usr/bin/
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/bluealsa-aplay $(1)/usr/bin/
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/bluealsa-cli $(1)/usr/bin/
 
-	# 2. 安装 ALSA 插件
+	# 3. 安装 ALSA 插件
 	# 如果 $(STAGING_DIR) 是绝对路径，有的环境需要去掉开头的斜杠
 	$(CP) $(PKG_INSTALL_DIR)$(STAGING_DIR)/usr/lib/alsa-lib/libasound_module_*.so $(1)/usr/lib/alsa-lib/
 
-	# 3. 写入动态 asound.conf (自动寻找模式)
+	# 4. 写入动态 asound.conf (自动寻找模式)
 	$(INSTALL_DIR) $(1)/etc/alsa/conf.d
 	@echo 'pcm.bluealsa { type bluealsa device "00:00:00:00:00:00" profile "a2dp" }' > $(1)/etc/alsa/conf.d/20-bluealsa.conf
 	@echo 'ctl.bluealsa { type bluealsa }' >> $(1)/etc/alsa/conf.d/20-bluealsa.conf
 
-	# 4. 安装 D-Bus 配置文件
+	# 5. 安装 D-Bus 配置文件
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/src/bluealsa-dbus.conf $(1)/etc/dbus-1/system.d/bluealsa.conf 2>/dev/null || \
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/src/bluealsa.conf $(1)/etc/dbus-1/system.d/bluealsa.conf
 
-	# 5. 安装启动脚本
+	# 6. 安装启动脚本
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/bluealsa.init $(1)/etc/init.d/bluealsa
 	
-	# 6. 安装监控脚本
+	# 7. 安装监控脚本
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) ./files/bt_monitor.sh $(1)/usr/bin/bt_monitor.sh
 
-	# 7. 安装配置文件
+	# 8. 安装配置文件
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_DATA) ./files/bluealsa.config $(1)/etc/config/bluealsa
 endef
