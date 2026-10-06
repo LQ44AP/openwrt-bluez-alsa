@@ -1,4 +1,4 @@
-name: Build bluez-alsa LuCI Package
+name: Build bluealsa LuCI Package
 
 on:
   workflow_dispatch:
