@@ -1,0 +1,108 @@
+#!/bin/sh
+# bt-pair — 非交互蓝牙配对/管理助手，供 LuCI 调用
+# 用法：
+#   bt-pair scan                 扫描附近设备 8 秒
+#   bt-pair list                 列出已配对设备
+#   bt-pair pair <MAC>           配对并信任、连接
+#   bt-pair unpair <MAC>         取消配对
+#   bt-pair connect <MAC>        连接已配对设备
+#   bt-pair disconnect <MAC>     断开连接
+#   bt-pair status               输出当前适配器和连接状态
+
+export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
+
+BTCTL="bluetoothctl"
+TIMEOUT_SEC=8
+
+log() { echo "$*" >&2; }
+
+# 确保适配器上电
+ensure_power() {
+    $BTCTL power on >/dev/null 2>&1
+    # 等待 bluetoothd D-Bus 就绪
+    local i=0
+    while [ "$i" -lt 5 ]; do
+        $BTCTL show 2>/dev/null | grep -q "Powered: yes" && return 0
+        sleep 1
+        i=$((i + 1))
+    done
+    return 1
+}
+
+# 确保 agent 已注册（配对需要）
+ensure_agent() {
+    $BTCTL agent NoInputNoOutput >/dev/null 2>&1
+    $BTCTL default-agent >/dev/null 2>&1
+}
+
+case "$1" in
+    scan)
+        ensure_power || { log "适配器未就绪"; exit 1; }
+        ensure_agent
+        $BTCTL --timeout "$TIMEOUT_SEC" scan on >/dev/null 2>&1
+        # 扫描结束后输出所有已知设备
+        $BTCTL devices
+        ;;
+
+    list)
+        $BTCTL devices Paired
+        ;;
+
+    pair)
+        MAC="$2"
+        [ -n "$MAC" ] || { log "缺少 MAC 参数"; exit 1; }
+        ensure_power || { log "适配器未就绪"; exit 1; }
+        ensure_agent
+
+        # 若设备尚未被发现，先短暂扫描
+        if ! $BTCTL devices | grep -qi "$MAC"; then
+            $BTCTL --timeout "$TIMEOUT_SEC" scan on >/dev/null 2>&1
+        fi
+
+        # 配对
+        if ! $BTCTL pair "$MAC" >/dev/null 2>&1; then
+            log "配对失败: $MAC"
+            exit 1
+        fi
+
+        # 信任并连接（失败不视为致命错误）
+        $BTCTL trust "$MAC" >/dev/null 2>&1
+        $BTCTL connect "$MAC" >/dev/null 2>&1
+
+        echo "OK"
+        ;;
+
+    unpair)
+        MAC="$2"
+        [ -n "$MAC" ] || { log "缺少 MAC 参数"; exit 1; }
+        $BTCTL remove "$MAC" >/dev/null 2>&1
+        echo "OK"
+        ;;
+
+    connect)
+        MAC="$2"
+        [ -n "$MAC" ] || { log "缺少 MAC 参数"; exit 1; }
+        $BTCTL connect "$MAC" >/dev/null 2>&1
+        echo "OK"
+        ;;
+
+    disconnect)
+        MAC="$2"
+        [ -n "$MAC" ] || { log "缺少 MAC 参数"; exit 1; }
+        $BTCTL disconnect "$MAC" >/dev/null 2>&1
+        echo "OK"
+        ;;
+
+    status)
+        echo "--- Controllers ---"
+        $BTCTL list
+        echo "--- Connected ---"
+        $BTCTL devices Connected
+        ;;
+
+    *)
+        log "未知命令: $1"
+        echo "用法: bt-pair {scan|list|pair|unpair|connect|disconnect|status} [MAC]"
+        exit 1
+        ;;
+esac

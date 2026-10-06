@@ -1,0 +1,18 @@
+{
+	"luci-app-bluez-alsa": {
+		"description": "Grant UCI, fs and ubus access for luci-app-bluez-alsa",
+		"read": {
+			"uci": [ "bluealsa" ],
+			"ubus": {
+				"service": [ "list" ]
+			},
+			"file": {
+				"/usr/bin/bluetoothctl": [ "exec" ],
+				"/usr/bin/bt-pair": [ "exec" ]
+			}
+		},
+		"write": {
+			"uci": [ "bluealsa" ]
+		}
+	}
+}

@@ -1,0 +1,35 @@
+{
+	"admin/services/bluealsa": {
+		"title": "BlueALSA",
+		"order": 60,
+		"action": {
+			"type": "firstchild",
+			"recurse": true
+		},
+		"depends": {
+			"acl": [ "luci-app-bluez-alsa" ]
+		}
+	},
+	"admin/services/bluealsa/config": {
+		"title": "蓝牙音频配置",
+		"order": 1,
+		"action": {
+			"type": "view",
+			"path": "bluez-alsa/bluealsa"
+		},
+		"depends": {
+			"acl": [ "luci-app-bluez-alsa" ]
+		}
+	},
+	"admin/services/bluealsa/pair": {
+		"title": "蓝牙配对",
+		"order": 2,
+		"action": {
+			"type": "view",
+			"path": "bluez-alsa/pair"
+		},
+		"depends": {
+			"acl": [ "luci-app-bluez-alsa" ]
+		}
+	}
+}
