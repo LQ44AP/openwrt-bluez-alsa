@@ -12,7 +12,7 @@
 export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 
 BTCTL="bluetoothctl"
-TIMEOUT_SEC=20
+TIMEOUT_SEC=15
 
 log() { echo "$*" >&2; }
 
