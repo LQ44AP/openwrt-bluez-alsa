@@ -130,7 +130,7 @@ return view.extend({
 			'class': 'btn cbi-button cbi-button-action',
 			'click': function() {
 				btnScan.disabled = true;
-				btnScan.textContent = _('扫描中…');
+				btnScan.textContent = _('扫描中…… (最多 20 秒)');
 				scanResultBox.innerHTML = '';
 
 				callBtPair([ 'scan' ]).then(function(stdout) {
@@ -204,7 +204,7 @@ return view.extend({
 			E('div', { 'class': 'cbi-section' }, [
 				E('h3', {}, [ _('扫描并配对') ]),
 				E('p', { 'class': 'cbi-section-descr' },
-					[ _('请先让目标设备进入配对模式，然后点击扫描。') ]),
+					[ _('请先让目标设备进入配对模式，然后点击扫描（约需 20 秒）。') ]),
 				E('div', { 'style': 'margin:1em 0;' }, [ btnScan ]),
 				scanResultBox
 			])
