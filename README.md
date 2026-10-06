@@ -35,12 +35,21 @@ uci set bluealsa.settings.mac=音箱的MAC && uci commit bluealsa && /etc/init.d
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 播放软件mpd的audio可以这样配置
+
 audio_output {
+
 type "alsa"
+
 name "My BlueALSA"
+
 device "bluealsa" # 这里对应 asound.conf 里的 pcm.bluealsa
+
 mixer_type "software" # 建议用软件调音或者 none
+
 auto_resample "no"
+
 auto_channels "no"
+
 auto_format "no"
+
 }
