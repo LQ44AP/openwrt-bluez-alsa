@@ -25,7 +25,6 @@ cleanup() {
         wait "$SCAN_PID" 2>/dev/null
     fi
     [ -n "$SCAN_LOG" ] && rm -f "$SCAN_LOG"
-    # 确保适配器退出扫描态，避免下一轮冲突
     timeout 3 bluetoothctl scan off >/dev/null 2>&1
     exit 0
 }
@@ -60,7 +59,7 @@ get_connected_macs() {
 }
 
 # ========================
-# 检查目标设备是否已连接（精确匹配 MAC）
+# 检查目标设备是否已连接
 # ========================
 is_target_connected() {
     local target="$1"
@@ -102,7 +101,7 @@ probe_device() {
         fi
     fi
 
-    # 2. 复位扫描态（避免 "Operation already in progress"）
+    # 2. 复位扫描态
     btctl scan off >/dev/null 2>&1
     sleep 1
 
@@ -120,7 +119,7 @@ probe_device() {
     fi
     SCAN_PID=""
 
-    # 4. 显式关扫描（杀进程不保证 D-Bus 层已停）
+    # 4. 显式关扫描
     btctl scan off >/dev/null 2>&1
 
     grep -qi "$target" "$SCAN_LOG"
@@ -138,7 +137,6 @@ connect_target() {
     log "尝试连接 $target ..."
     btctl connect "$target" >/dev/null 2>&1
 
-    # 轮询间隔 2 秒，最少等一轮
     local waited=0
     while [ "$waited" -lt "$CONNECT_WAIT_MAX" ]; do
         sleep 2
@@ -232,7 +230,6 @@ main() {
             if probe_device "$TARGET_MAC"; then
                 log "探测到目标在线"
                 if connect_target "$TARGET_MAC"; then
-                    # 连接成功后回到主循环重新判定状态
                     last_state="unknown"
                     continue
                 fi
