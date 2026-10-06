@@ -1,130 +1,221 @@
-name: Build Bluez-Alsa
+name: Build Bluez-ALSA (IPK & APK)
 
 on:
   push:
-    tags:
-      - 'v*'  
-  workflow_dispatch: 
+    tags: [ "v*" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
-    name: Build for ${{ matrix.arch }}
+    name: Build ${{ matrix.version }} / ${{ matrix.arch.name }}
     runs-on: ubuntu-latest
-    # 授予写入 Release 的权限
-    permissions:
-      contents: write
-    
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - arch: mipsel_24kc
-            sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/ramips/mt7621/openwrt-sdk-23.05.6-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz
-          
-          - arch: mips_24kc
-            sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/ath79/generic/openwrt-sdk-23.05.6-ath79-generic_gcc-12.3.0_musl.Linux-x86_64.tar.xz
-            
-          - arch: x86_64
-            sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/x86/64/openwrt-sdk-23.05.6-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
-
-          - arch: aarch64_generic
-            sdk_url: https://downloads.openwrt.org/releases/23.05.6/targets/rockchip/armv8/openwrt-sdk-23.05.6-rockchip-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+        version: [23.05.6, 25.12.5]
+        arch:
+          - { name: mipsel_24kc,     target: ramips,   subtarget: mt7621 }
+          - { name: mips_24kc,       target: ath79,    subtarget: generic }
+          - { name: x86_64,          target: x86,      subtarget: 64 }
+          - { name: aarch64_generic, target: rockchip, subtarget: armv8 }
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install Build Dependencies
+      - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential libncurses5-dev gawk git gettext \
-            libssl-dev xsltproc wget zip unzip rsync python3 \
-            libglib2.0-dev-bin libtool pkg-config
+            libssl-dev xsltproc wget unzip python3 file zstd tar rsync
 
-      - name: Setup SDK
+      - name: Set version-specific variables
+        id: vars
         run: |
-          wget -qO sdk.tar.xz "${{ matrix.sdk_url }}"
-          mkdir sdk && tar -xJf sdk.tar.xz -C sdk --strip-components=1
-          cd sdk
-          
-          # 1. 替换默认源为 GitHub 镜像 (提高拉取成功率)
-          cat > feeds.conf.default <<EOF
-          src-git base https://github.com/openwrt/openwrt.git;v23.05.6
-          src-git packages https://github.com/openwrt/packages.git;openwrt-23.05
-          src-git routing https://github.com/openwrt/routing.git;openwrt-23.05
-          src-git telephony https://github.com/openwrt/telephony.git;openwrt-23.05
-          EOF
+          VERSION="${{ matrix.version }}"
+          if [[ "$VERSION" =~ ^25\. ]] || [[ "$VERSION" == "main" ]]; then
+            echo "ext=zst"                           >> "$GITHUB_OUTPUT"
+            echo "sdk_pattern=openwrt-sdk-*.tar.zst" >> "$GITHUB_OUTPUT"
+          else
+            echo "ext=xz"                            >> "$GITHUB_OUTPUT"
+            echo "sdk_pattern=openwrt-sdk-*.tar.xz"  >> "$GITHUB_OUTPUT"
+          fi
 
-          # 2. 更新源
+      - name: Download and Setup SDK
+        run: |
+          VERSION="${{ matrix.version }}"
+          TARGET="${{ matrix.arch.target }}"
+          SUBTARGET="${{ matrix.arch.subtarget }}"
+          SDK_BASE="https://downloads.openwrt.org/releases/${VERSION}/targets/${TARGET}/${SUBTARGET}/"
+          PATTERN="${{ steps.vars.outputs.sdk_pattern }}"
+          EXT="${{ steps.vars.outputs.ext }}"
+
+          wget -nv -r -l1 -nd -A "$PATTERN" -e robots=off "$SDK_BASE"
+          SDK_FILE=$(ls $PATTERN 2>/dev/null | head -n 1)
+          [ -z "$SDK_FILE" ] && { echo "::error::No SDK found at $SDK_BASE"; exit 1; }
+          echo "Found SDK: $SDK_FILE"
+
+          if [ "$EXT" = "xz" ]; then
+            tar -xJf "$SDK_FILE"
+          else
+            tar --zstd -xf "$SDK_FILE"
+          fi
+
+          SDK_DIR="${SDK_FILE%.tar.*}"
+          [ -d "$SDK_DIR" ] || { echo "::error::SDK dir not found: $SDK_DIR"; exit 1; }
+          mv "$SDK_DIR" openwrt-sdk
+
+      - name: Update feeds
+        working-directory: openwrt-sdk
+        run: |
           ./scripts/feeds update -a
-          
-          # 3. 安装依赖包
-          # 先精准安装核心依赖，再执行 install -a 补充索引
-          ./scripts/feeds install alsa-lib bluez-daemon glib2 sbc fdk-aac dbus mpg123 libspandsp
-          ./scripts/feeds install -a || echo "Ignore core merging warnings"
 
-      - name: Add Package to SDK
+      - name: Install required feeds (per-package, fail-safe)
+        working-directory: openwrt-sdk
         run: |
-          mkdir -p sdk/package/bluez-alsa
-          cp Makefile sdk/package/bluez-alsa/
-          [ -d files ] && cp -r files sdk/package/bluez-alsa/
-          # 强制修复换行符，防止安装后 init 脚本报错
-          find sdk/package/bluez-alsa/ -type f -exec sed -i 's/\r$//' {} +
-
-      - name: Build Package
-        run: |
-          cd sdk
-          ./scripts/feeds install glib2
-          echo "CONFIG_PACKAGE_bluez-alsa=m" >> .config
-          echo "CONFIG_PACKAGE_alsa-lib=y" >> .config
-          echo "CONFIG_PACKAGE_bluez-daemon=y" >> .config
-          echo "CONFIG_PACKAGE_sbc=y" >> .config
-          echo "CONFIG_PACKAGE_glib2=y" >> .config
-          echo "CONFIG_PACKAGE_fdk-aac=y" >> .config
-          echo "CONFIG_PACKAGE_dbus=y" >> .config
-          echo "CONFIG_PACKAGE_mpg123=y" >> .config
-          echo "CONFIG_PACKAGE_libspandsp=y" >> .config
-          
-          make defconfig
-          # 先单独编译 glib2 确保环境完整，再编 bluez-alsa
-          make package/glib2/host/compile V=s -j$(nproc)
-          make package/bluez-alsa/compile V=s -j$(nproc)
-
-      - name: Collect IPK
-        run: |
-          mkdir -p output
-          echo "正在精准搜寻编译产物..."
-          
-          # 1. 仅从最终产物目录搜索，避免抓取到 build_dir 里的中间件
-          # 使用 -type f 确保只找文件，并限制深度
-          find sdk/bin/packages/ -name "bluez-alsa*.ipk" -type f -exec cp -t output/ {} +
-
-          # 2. 进入目录进行清理和重命名
-          cd output
-          
-          # 移除由于 find 策略可能导致的重复文件（基于文件名去重）
-          # 同时防止对已经包含架构标记的文件重复加后缀
-          for f in *.ipk; do
-            # 检查文件名是否已经包含该架构字符串，防止重复重命名
-            if [[ "$f" != *"${{ matrix.arch }}"* ]]; then
-              new_name="${f%.ipk}_${{ matrix.arch }}.ipk"
-              echo "重命名: $f -> $new_name"
-              mv "$f" "$new_name"
-            else
-              echo "跳过已处理文件: $f"
-            fi
+          # 核心依赖：任何一项缺失即失败
+          CORE="alsa-lib bluez-daemon glib2 sbc dbus mpg123 fdk-aac"
+          for p in $CORE; do
+            ./scripts/feeds install "$p" || {
+              echo "::error::Required feed package missing: $p"
+              exit 1
+            }
           done
-          
-          echo "最终待发布列表："
-          ls -lh .
 
-      - name: Create Release and Upload
-        uses: softprops/action-gh-release@v2  # 推荐使用 v2
-        if: startsWith(github.ref, 'refs/tags/')
+          # 可选依赖：能装就装，装不上不阻塞
+          ./scripts/feeds install libspandsp || \
+            echo "WARN: libspandsp not found, bluez-alsa 将不带 spandsp 支持"
+
+      - name: Add bluez-alsa package to SDK
+        run: |
+          mkdir -p openwrt-sdk/package/bluez-alsa
+          cp Makefile openwrt-sdk/package/bluez-alsa/
+          if [ -d files ]; then
+            cp -r files openwrt-sdk/package/bluez-alsa/
+          fi
+
+          # 修复 CRLF，避免 init 脚本在目标机上挂掉
+          find openwrt-sdk/package/bluez-alsa/ -type f -exec sed -i 's/\r$//' {} +
+
+          # 提前失败，避免 make 报 "No rule to make target"
+          test -f openwrt-sdk/package/bluez-alsa/Makefile || {
+            echo "::error::Makefile not found in openwrt-sdk/package/bluez-alsa/"
+            exit 1
+          }
+
+          # 检查 files/ 三件套是否存在
+          for f in bluealsa.init bt_monitor.sh bluealsa.config; do
+            test -f "openwrt-sdk/package/bluez-alsa/files/$f" || {
+              echo "::error::files/$f missing!"
+              exit 1
+            }
+          done
+
+          echo "=== package/bluez-alsa 内容 ==="
+          find openwrt-sdk/package/bluez-alsa -maxdepth 2
+
+      - name: Configure & Sanity check
+        working-directory: openwrt-sdk
+        run: |
+          {
+            echo "CONFIG_BUILD_PATENTED=y"          # 必须，否则 fdk-aac 不可选
+            echo "CONFIG_PACKAGE_bluez-alsa=m"
+            echo "CONFIG_PACKAGE_alsa-lib=y"
+            echo "CONFIG_PACKAGE_bluez-daemon=y"
+            echo "CONFIG_PACKAGE_sbc=y"
+            echo "CONFIG_PACKAGE_glib2=y"
+            echo "CONFIG_PACKAGE_dbus=y"
+            echo "CONFIG_PACKAGE_mpg123=y"
+            echo "CONFIG_PACKAGE_fdk-aac=y"
+          } >> .config
+
+          make defconfig
+
+          echo "===== Sanity check ====="
+          for k in \
+              CONFIG_BUILD_PATENTED \
+              CONFIG_PACKAGE_bluez-alsa \
+              CONFIG_PACKAGE_alsa-lib \
+              CONFIG_PACKAGE_glib2 \
+              CONFIG_PACKAGE_fdk-aac ; do
+            grep -q "^${k}=" .config || {
+              echo "::error::$k not enabled after defconfig"
+              exit 1
+            }
+          done
+          grep -E "^CONFIG_PACKAGE_(bluez-alsa|fdk-aac)=" .config
+
+      - name: Build
+        working-directory: openwrt-sdk
+        run: |
+          make package/bluez-alsa/compile V=s -j"$(nproc)"
+
+      - name: Collect IPK/APK
+        run: |
+          mkdir -p ./deploy
+          ARCH_NAME="${{ matrix.arch.name }}"
+          VERSION="${{ matrix.version }}"
+
+          FOUND=0
+          while IFS= read -r -d '' FILE; do
+            FOUND=1
+            FILENAME=$(basename "$FILE")
+
+            if [[ "$FILENAME" == *.apk ]]; then
+              BASE_NAME="${FILENAME%.apk}"
+              cp "$FILE" "./deploy/${BASE_NAME}_${VERSION}_${ARCH_NAME}.apk"
+              echo "APK: $FILENAME -> ${BASE_NAME}_${VERSION}_${ARCH_NAME}.apk"
+            elif [[ "$FILENAME" == *.ipk ]]; then
+              cp "$FILE" "./deploy/${FILENAME%.ipk}_${VERSION}_${ARCH_NAME}.ipk"
+              echo "IPK: $FILENAME -> ${FILENAME%.ipk}_${VERSION}_${ARCH_NAME}.ipk"
+            fi
+          done < <(find openwrt-sdk/bin/ -type f \
+                     \( -name 'bluez-alsa*.ipk' -o -name 'bluez-alsa*.apk' \) -print0)
+
+          if [ "$FOUND" -eq 0 ]; then
+            echo "::error::No bluez-alsa package files produced!"
+            exit 1
+          fi
+
+          echo "=== 最终产物 ==="
+          ls -lh ./deploy/
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          files: output/*.ipk
-          # 如果 tag 是测试版（如 v1.0-beta），自动标记为预发布
-          prerelease: ${{ contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
-          generate_release_notes: true # 自动根据 commit 生成更新日志
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: bluez-alsa-${{ matrix.version }}-${{ matrix.arch.name }}
+          path: ./deploy/*
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./release-assets
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ./release-assets/*.ipk
+            ./release-assets/*.apk
+          body: |
+            ## bluez-alsa 多架构 / 多版本自动编译
+
+            | 格式 | 适用 OpenWrt |
+            |------|--------------|
+            | IPK  | 23.05.x      |
+            | APK  | 25.12.x      |
+
+            **支持架构**：`mipsel_24kc`、`mips_24kc`、`x86_64`、`aarch64_generic`
+
+          generate_release_notes: true
+          fail_on_unmatched_files: false
