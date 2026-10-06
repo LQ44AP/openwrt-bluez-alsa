@@ -1,4 +1,4 @@
-name: Build IPTV Scanner LuCI Package
+name: Build bluez-alsa LuCI Package
 
 on:
   workflow_dispatch:
