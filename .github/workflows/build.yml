@@ -227,5 +227,5 @@ jobs:
 
             仅包含 bluez-alsa 主程序包，不含 LuCI 界面。
 
-          generate_release_notes: true
+          generate_release_notes: false
           fail_on_unmatched_files: false
