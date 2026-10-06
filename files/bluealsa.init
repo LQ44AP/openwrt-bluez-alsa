@@ -5,52 +5,102 @@ USE_PROCD=1
 
 start_service() {
     config_load bluealsa
-    local enabled sink source name monitor_enabled aac
-    
-    config_get_bool enabled main enabled 1
-    config_get_bool sink main sink_enabled 1
-    config_get_bool source main source_enabled 1
-    config_get_bool aac main aac_afterburner 1
-    config_get name main device_name 'OpenWrt-BT'
-    # 获取发射模式监控开关
-    config_get_bool monitor_enabled settings enabled 0
-    config_get mac settings mac
+    local enabled sink source name monitor_enabled aac hci sysbus mac
 
-    [ "$enabled" -eq 0 ] && return
+    config_get_bool enabled         main     enabled          1
+    config_get_bool sink            main     sink_enabled     1
+    config_get_bool source          main     source_enabled   1
+    config_get_bool aac             main     aac_afterburner  1
+    config_get      name            main     device_name      'OpenWrt-BT'
+    config_get      hci             main     hci              'hci0'
+    config_get_bool sysbus          main     sysbus           1
+    config_get_bool monitor_enabled settings enabled           0
+    config_get      mac             settings mac
 
-    # 1. 启动 bluealsa 主进程
-    local args="-i hci0"
-    [ "$sink" -eq 1 ] && args="$args -p a2dp-sink"
-    [ "$source" -eq 1 ] && args="$args -p a2dp-source"
-    [ "$aac" -eq 1 ] && args="$args --codec=AAC --aac-afterburner"
+    [ "$enabled" -eq 0 ] && return 0
 
-    procd_open_instance "main"
-    procd_set_param command /usr/bin/bluealsa $args
-    procd_set_param respawn
-    procd_close_instance
-
-    # 2. 接收模式：音频转发 (手机连路由器放歌)
-    if [ "$sink" -eq 1 ]; then
-        procd_open_instance "aplay"
-        procd_set_param command /usr/bin/bluealsa-aplay -a --profile-a2dp
-        procd_set_param respawn
-        procd_close_instance
+    if [ "$sink" -eq 0 ] && [ "$source" -eq 0 ]; then
+        logger -t bluealsa "sink/source 均未启用，跳过启动"
+        return 0
     fi
 
-    # 3. 发射模式：自动重连监控 (路由器连耳机)
-    if [ "$source" -eq 1 ] && [ "$monitor_enabled" -eq 1 ] && [ -n "$mac" ]; then
-        procd_open_instance "monitor"
-        procd_set_param command /bin/sh /usr/bin/bt_monitor.sh
+    # ---------- 1. bluealsad 主进程 ----------
+    local args="-i $hci"
+    [ "$sysbus" -eq 1 ] && args="-S $args"
+    [ "$sink"   -eq 1 ] && args="$args -p a2dp-sink"
+    [ "$source" -eq 1 ] && args="$args -p a2dp-source"
+    [ "$aac"    -eq 1 ] && args="$args --codec=aac"
+
+    procd_open_instance "main"
+    procd_set_param command /usr/bin/bluealsad $args
+    procd_set_param respawn
+    procd_set_param stdout 1
+    procd_set_param stderr 1
+    procd_set_param file /etc/config/bluealsa
+    procd_close_instance
+
+    # ---------- 2. 接收模式：bluealsa-aplay ----------
+    if [ "$sink" -eq 1 ]; then
+        procd_open_instance "aplay"
+        procd_set_param command /usr/bin/bluealsa-aplay --profile=a2dp --pcm=default
         procd_set_param respawn
         procd_set_param stdout 1
         procd_set_param stderr 1
         procd_close_instance
     fi
 
-    # 4. 基础硬件配置
-    hciconfig hci0 up
-    hciconfig hci0 name "$name"
-    [ "$sink" -eq 1 ] && hciconfig hci0 piscan || hciconfig hci0 noscan
+    # ---------- 3. 发射模式：自动重连监控 ----------
+    if [ "$source" -eq 1 ] && [ "$monitor_enabled" -eq 1 ] && [ -n "$mac" ]; then
+        procd_open_instance "monitor"
+        procd_set_param command /bin/sh /usr/bin/bt_monitor.sh
+        procd_set_param respawn 3600 5 5
+        procd_set_param stdout 1
+        procd_set_param stderr 1
+        procd_set_param file /etc/config/bluealsa
+        procd_close_instance
+    fi
+
+    # ---------- 4. 适配器别名 / 可发现 ----------
+    setup_hci "$hci" "$name" "$sink"
+}
+
+setup_hci() {
+    local hci="$1" name="$2" sink="$3"
+
+    if command -v bluetoothctl >/dev/null 2>&1; then
+        local i=0
+        while [ "$i" -lt 10 ]; do
+            bluetoothctl show 2>/dev/null | grep -q "Powered: yes" && break
+            sleep 1
+            i=$((i + 1))
+        done
+
+        bluetoothctl system-alias "$name" >/dev/null 2>&1
+
+        if [ "$sink" -eq 1 ]; then
+            bluetoothctl pairable on     >/dev/null 2>&1
+            bluetoothctl discoverable on >/dev/null 2>&1
+        else
+            bluetoothctl discoverable off >/dev/null 2>&1
+        fi
+    elif command -v hciconfig >/dev/null 2>&1; then
+        hciconfig "$hci" up
+        hciconfig "$hci" name "$name"
+        if [ "$sink" -eq 1 ]; then
+            hciconfig "$hci" piscan
+        else
+            hciconfig "$hci" noscan
+        fi
+    else
+        logger -t bluealsa "警告: 既无 bluetoothctl 也无 hciconfig，跳过适配器配置"
+    fi
+}
+
+stop_service() {
+    if command -v bluetoothctl >/dev/null 2>&1; then
+        bluetoothctl discoverable off >/dev/null 2>&1
+        bluetoothctl pairable     off >/dev/null 2>&1
+    fi
 }
 
 service_triggers() {
