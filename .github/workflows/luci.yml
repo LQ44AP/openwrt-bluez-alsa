@@ -39,7 +39,10 @@ jobs:
       - name: Download OpenWrt SDK
         run: |
           set -e
-          wget -q -O sdk.tar.${{ matrix.sdk_ext }} "${{ matrix.sdk_url }}"
+          wget -q -O sdk.tar.${{ matrix.sdk_ext }} "${{ matrix.sdk_url }}" || {
+            echo "::error::SDK 下载失败: ${{ matrix.sdk_url }}"
+            exit 1
+          }
           mkdir -p sdk
           if [ "${{ matrix.sdk_ext }}" = "zst" ]; then
             tar --zstd -xf sdk.tar.zst -C sdk --strip-components=1
@@ -51,7 +54,15 @@ jobs:
         run: |
           set -e
           cp -r ./luci-app-bluealsa sdk/package/luci-app-bluealsa
-          chmod +x sdk/package/luci-app-bluealsa/root/usr/bin/bt-pair
+
+          # bt-pair 可执行位（存在才 chmod）
+          BP=sdk/package/luci-app-bluealsa/root/usr/bin/bt-pair
+          [ -f "$BP" ] && chmod +x "$BP"
+
+          # CRLF 修复，避免脚本在目标机上挂掉
+          find sdk/package/luci-app-bluealsa -type f \
+            -exec sed -i 's/\r$//' {} +
+
           echo "=== package tree ==="
           find sdk/package/luci-app-bluealsa -type f | sort
 
@@ -68,8 +79,15 @@ jobs:
           set -e
           echo "CONFIG_PACKAGE_luci-app-bluealsa=m" >> .config
           make defconfig
-          grep -q '^CONFIG_PACKAGE_luci-app-bluealsa=m' .config \
-            || { echo "package not enabled"; exit 1; }
+
+          if ! grep -q '^CONFIG_PACKAGE_luci-app-bluealsa=m' .config; then
+            echo "::error::luci-app-bluealsa 未启用，可能是依赖未满足"
+            echo "---- 相关依赖解析结果 ----"
+            grep -E '^CONFIG_PACKAGE_(bluez-alsa|luci-app-bluealsa)=' .config || true
+            echo "---- 本地包目录 ----"
+            ls -la package/ | grep -E 'blue|luci' || true
+            exit 1
+          fi
 
       - name: Build LuCI package only
         working-directory: sdk
