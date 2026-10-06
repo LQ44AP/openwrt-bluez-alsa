@@ -164,7 +164,6 @@ jobs:
         run: |
           mkdir -p ./deploy
           ARCH_NAME="${{ matrix.arch.name }}"
-          VERSION="${{ matrix.version }}"
 
           FOUND=0
           while IFS= read -r -d '' FILE; do
@@ -172,12 +171,14 @@ jobs:
             FILENAME=$(basename "$FILE")
 
             if [[ "$FILENAME" == *.apk ]]; then
+              # APK 原始名不含架构，补上
               BASE_NAME="${FILENAME%.apk}"
-              cp "$FILE" "./deploy/${BASE_NAME}_${VERSION}_${ARCH_NAME}.apk"
-              echo "APK: $FILENAME -> ${BASE_NAME}_${VERSION}_${ARCH_NAME}.apk"
+              cp "$FILE" "./deploy/${BASE_NAME}_${ARCH_NAME}.apk"
+              echo "APK: $FILENAME -> ${BASE_NAME}_${ARCH_NAME}.apk"
             elif [[ "$FILENAME" == *.ipk ]]; then
-              cp "$FILE" "./deploy/${FILENAME%.ipk}_${VERSION}_${ARCH_NAME}.ipk"
-              echo "IPK: $FILENAME -> ${FILENAME%.ipk}_${VERSION}_${ARCH_NAME}.ipk"
+              # IPK 原始名已含版本与架构，保持原样
+              cp "$FILE" "./deploy/${FILENAME}"
+              echo "IPK: $FILENAME"
             fi
           done < <(find openwrt-sdk/bin/ -type f \
                      \( -name 'bluez-alsa*.ipk' -o -name 'bluez-alsa*.apk' \) -print0)
