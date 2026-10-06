@@ -1,7 +1,6 @@
 {
 	"admin/services/bluealsa": {
 		"title": "BlueALSA",
-		"order": 60,
 		"action": {
 			"type": "firstchild",
 			"recurse": true
